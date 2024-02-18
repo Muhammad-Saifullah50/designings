@@ -10,14 +10,16 @@ import { useMutation, useRedo, useStorage, useUndo } from "../../liveblocks.conf
 import { defaultNavElement } from "@/constants";
 import { handleDelete, handleKeyDown } from "@/lib/key-events";
 import LeftSidebar from "@/components/LeftSidebar";
+import { handleImageUpload } from "@/lib/shapes";
 
 export default function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
-  const isDrawing = useRef(false);
   const shapeRef = useRef<fabric.Object | null>(null);
   const activeObjectRef = useRef<fabric.Object | null>(null);
   const selectedShapeRef = useRef<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const isDrawing = useRef(false);
   const [activeElement, setActiveElement] = useState<ActiveElement>({
     name: '',
     value: '',
@@ -47,7 +49,7 @@ export default function HomePage() {
 
     if (!canvasObjects || canvasObjects.size === 0) return true;
 
-    for (const [key, value] of canvasObjects.entries()) {
+    for (const [key, value] of canvasObjects.entries() as any) {
       canvasObjects.delete(key);
 
     };
@@ -73,9 +75,20 @@ export default function HomePage() {
       case 'delete': {
         handleDelete(fabricRef.current as any, deleteShapeFromStorage)
       }
-
+        break;
       default:
         break;
+
+      case 'image': {
+        imageInputRef.current?.click();
+        isDrawing.current = false;
+
+        if (fabricRef.current) {
+          fabricRef.current.isDrawingMode = false;
+        }
+
+        break;
+      }
     }
 
     selectedShapeRef.current = elem?.value as string;
@@ -155,6 +168,17 @@ export default function HomePage() {
       <Navbar
         activeElement={activeElement}
         handleActiveElement={handleActiveElement}
+        imageInputRef={imageInputRef}
+        handleImageUpload={(e) => {
+          e.stopPropagation();
+
+          handleImageUpload({
+            file: e.target.files[0],
+            canvas: fabricRef,
+            shapeRef,
+            syncShapeInStorage
+          })
+        }}
       />
       <section className="flex h-full flex-row">
         <LeftSidebar allShapes={Array.from(canvasObjects)} />
